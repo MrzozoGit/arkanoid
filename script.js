@@ -1,3 +1,8 @@
+// TD/ Gérer les gamestate
+// TD/ Gérer le chagement de niveaux
+// TD/ Gérer les bonus
+// TD/ Gérer les malus
+
 class Entity {
     constructor(posx, posy, height, width, speed, health) {
         this.posx = posx;
@@ -104,9 +109,29 @@ class Ball extends Entity {
         }
     }
 
+    checkBricksCollision = function(bricks) {
+        bricks.forEach(brick => {
+            // Check if collide
+            if (this.posx + this.speedx < brick.posx + brick.width &&
+                this.posx + this.width + this.speedx > brick.posx &&
+                this.posy + this.speedy < brick.posy + brick.height &&
+                this.height + this.posy + this.speedy > brick.posy) {
+                    // Collide from left or right
+                    if (this.posx + this.width - this.speedx <= brick.posx || this.posx - this.speedx >= brick.posx + brick.width) {
+                        this.speedx = -this.speedx;
+                    // Collide from above or below
+                    } else { 
+                        this.speedy = -this.speedy;
+                    }
+                    brick.health -= 1;
+                    if (brick.health == 0) brick.isAlive = false;
+            }
+        })
+    }
+
     // Reset ball properties after loosing a life
     resetBall = function(player) {
-        //// Maybe put this in the constructor to have a "better" more dynamic instanciation ////
+        // TD/ Maybe put this in the constructor to have a "better" more dynamic instanciation //
         this.posx = player.posx + (player.width / 2) - (this.width / 2);
         this.posy = V.gameContainerHeight - this.height - 50;
 
@@ -118,7 +143,22 @@ class Ball extends Entity {
     }
 }
 
-class Brick extends Entity {}
+class Brick extends Entity {
+    constructor(type, tileHeight, tileWidth, col, row, health, color) {
+        super();
+
+        this.height = tileHeight;
+        this.width = tileWidth;
+
+        this.posx = col * tileWidth;
+        this.posy = row * tileHeight;
+
+        this.health = health;
+
+        this.color = color;
+        this.type = type;
+    }
+}
 
 class Item extends Entity {}
 
@@ -131,12 +171,28 @@ class Levelmap {
         this.tileWidth = 64;
         this.tileHeight = 30;
         this.cols = V.gameContainerWidth/this.tileWidth;
-        this.rows = V.gameContainerHeight/this.tileHeight;
+        this.rows = 15;
 
         // TEST LEVEL
         this.testLevel = {
             name: "level test",
-            map: []
+            map: [  
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,3,0,0,0,1,0,0,0,2,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0,3,0,0,0,0,3],
+                    [0,0,0,0,0,0,0,0,0,0,3,0,0,0,0,0],
+                    [1,1,1,1,1,10,1,0,0,1,1,1,1,1,0,0],
+                    [1,1,1,1,1,1,1,0,0,10,1,1,1,1,0,0],
+                    [1,1,1,1,1,1,1,0,0,10,1,10,1,1,0,0],
+                    [1,1,10,10,10,1,10,0,0,10,1,1,1,1,0,0],
+                ]
         }
 
         // Get levels maps from json file
@@ -144,6 +200,7 @@ class Levelmap {
         xhr.onreadystatechange = function () {
             if (xhr.status == 200 && xhr.readyState == 4) {
                 // console.log(JSON.parse(xhr.responseText));
+                this.bonj = "onk"
                 this.levels = JSON.parse(xhr.responseText);
             }
         }
@@ -161,11 +218,14 @@ var M = {
     malus: null,
 
     levelDictionnary: {
-        1: "basicBrick",
-        2: "twohitBrick",
-        3: "threehitBrick",
-        10: "unbreackableBrick"
+        "empty": 0,
+        "basicBrick": 1,
+        "twohitBrick": 2,
+        "threehitBrick": 3,
+        "unbreackableBrick": 10
     },
+
+    sprites: [],
 
     init: function() {
         // Instantiate the levelmap
@@ -180,12 +240,68 @@ var M = {
 
         // Instantiate the ball
         M.ball = new Ball();
+
+        // Build the map
+        M.buildMap(M.levelmap.testLevel);
     },
 
-    checkPlayerBallCollision: function() {
-        if(M.player.collision(M.ball.posx, M.ball.posy)) {
-            M.ball.speedy = -M.ball.speedy;
+    // checkPlayerBallCollision: function() {
+    //     if(M.player.collision(M.ball.posx, M.ball.posy)) {
+    //         M.ball.speedy = -M.ball.speedy;
+    //     }
+    // },
+
+    // Create Bricks and push them into sprites array to render
+    spritePusher: function (tileName, col, row, health, color) {
+        tileName = new Brick(tileName, M.levelmap.tileHeight, M.levelmap.tileWidth, col, row, health, color);
+        M.sprites.push(tileName);
+    },
+
+    // Build map
+    buildMap: function (map) {
+        // Go througth level map
+        for (let row = 0; row < M.levelmap.rows; row++) {
+            for (let col = 0; col < M.levelmap.cols; col++) {
+                let currentTile = map.map[row][col];
+
+                // Create Bricks
+                switch (currentTile) {
+                    case M.levelDictionnary['empty']:
+                        break
+                    
+                    // BRICKS
+                    case M.levelDictionnary['basicBrick']:
+                        M.spritePusher('basic', col, row, 1, 'red');
+                        break
+
+                    case M.levelDictionnary['twohitBrick']:
+                        M.spritePusher('twohit', col, row, 2, 'yellow');
+                        break
+
+                    case M.levelDictionnary['threehitBrick']:
+                        M.spritePusher('threehit', col, row, 3, 'green');
+                        break
+
+                    case M.levelDictionnary['unbreackableBrick']:
+                        M.spritePusher('unbreackable', col, row, -1, 'grey');
+                        break
+                }
+            }
         }
+    },
+
+    updateSprites: function() {
+        // Filter bricks
+        M.sprites = M.sprites.filter( function(sprite){ return sprite.isAlive==true;} );
+
+        // Set bricks type & colors
+        M.sprites.forEach(sprite => {
+            switch (sprite.health) {
+                case 1: sprite.type = 'basic'; break;
+                case 2: sprite.type = 'twohit'; break;
+                case 3: sprite.type = 'threehit'; break;
+            }
+        })
     }
 }
 
@@ -213,10 +329,14 @@ var C = {
     gameloop: function() {
         gameLoopId = window.requestAnimationFrame(C.gameloop);
 
+        // Filter & update elements
+        M.updateSprites();
+
         // Move entities & Check collisions
         if(M.ball.isLaunched && M.ball.isAlive) {
             M.ball.checkWallCollision();
             M.ball.checkPlayerCollision(M.player);
+            M.ball.checkBricksCollision(M.sprites);
             M.ball.move();
         } else if (!M.ball.isAlive) {
             M.player.health -= 1;
@@ -229,7 +349,7 @@ var C = {
         }
 
         // Duplicate model dataset for view
-        modelDataset = { player: M.player, ball: M.ball };
+        modelDataset = { player: M.player, ball: M.ball, map: M.sprites };
 
         // Clear game container
         V.clear();
@@ -288,6 +408,9 @@ var V = {
 
         // Render ball
         V.renderBall(modelDataset.ball);
+
+        // Render map
+        V.renderMap(modelDataset.map);
     },
 
     renderPlayer: function(player) {
@@ -319,7 +442,22 @@ var V = {
 
     renderHealth: function(health) {
         V.healthAmountContainer.textContent = health;
-    }
+    },
+
+    renderMap: function (sprites) {
+        sprites.forEach(sprite => {
+            var brickDiv = document.createElement("div");
+
+            brickDiv.style.position = "absolute";
+            brickDiv.style.left = sprite.posx + "px";
+            brickDiv.style.top = sprite.posy + "px";
+            brickDiv.style.width = sprite.width - 4 + "px";
+            brickDiv.style.height = sprite.height - 4 + "px";
+            brickDiv.classList.add(sprite.type);
+
+            V.gameContainer.append(brickDiv);
+        })
+    },
 }
 
 C.init();

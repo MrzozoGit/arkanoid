@@ -19,33 +19,35 @@ body {
 }
  */
 
- @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
 
- html, body {
-     margin: 0;
-     overflow: hidden;
-     height: 100%;
-     font-family: 'Press Start 2P';
- }
+html, body {
+    margin: 0;
+    overflow: hidden;
+    height: 100%;
+    font-family: 'Press Start 2P';
+}
  
- body {
-     display: flex;
-     justify-content: center;
-     align-items: center;
-     /* background-color: black; */
-     background-color: blanchedalmond;
- }
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: black;
+}
  
+.monitor__screen {
+    border: 1px white solid;
+}
  
 .player {
      background-color: white;
-     box-shadow: 0 0 40px 5px white;
+     box-shadow: 0 0 20px 1px white;
      user-select: "none";
  }
 
 .ball {
     background-color: white;
-    box-shadow: 0 0 40px 5px white;
+    box-shadow: 0 0 20px 1px white;
     user-select: "none";
 }
 
@@ -56,76 +58,101 @@ body {
     top: 20px;
     margin: 10px 0 0 10px;
 }
+
+/* Bricks */
+.basic {
+    background-color: red;
+    box-shadow: 0 0 20px 1px red;
+    user-select: "none";
+}
+
+.twohit {
+    background-color: yellow;
+    box-shadow: 0 0 20px 1px yellow;
+    user-select: "none";
+}
+
+.threehit {
+    background-color: green;
+    box-shadow: 0 0 20px 1px green;
+    user-select: "none";
+}
+
+.unbreackable {
+    background-color: grey;
+    box-shadow: 0 0 20px 1px grey;
+    user-select: "none";
+}
  
  /* TV */
- .bezel{
-     position: fixed;
-     width: 110%;
-     height: 110%;
-     /* border-image-source: url(/bezel_with_titles.png); */
-     border-image-slice: 0 fill;
-     border-image-outset: 0;
-     z-index: 5;
- }
- 
- .monitor{
-     display: flex;
-     justify-content: center;
-     align-items: center;
-     width: 110%;
-     height: 110%;
- }
- 
- .monitor__screen{
-     position: relative;
-     display: flex;
-     justify-content: center;
-     align-items: center;
-     width: 1024px;
-     height: 780px;
-     background: radial-gradient(#3b444b, 	black);
-     z-index: 4;
- }
- 
- .monitor__crt:before{
-     content: "";
-     display: block;
-     position: absolute;
-     top: 0;
-     left: 0;
-     bottom: 0;
-     right: 0;
-     background: linear-gradient(
-         to bottom,
-         rgba(18, 16, 16, 0) 50%,
-         rgba(0, 0, 0, 0.25) 50%
-     );
-     background-size: 100% 8px;
-     z-index: 5;
-     pointer-events: none;
-     animation: scanlines 5s steps(60) infinite;
- }
- 
- .monitor__channel{
-     position: absolute;
-     bottom: 10%;
-     left: 8%;
-     width: fit-content;
-     padding: 2px 3px;
-     background-color: black;
-     z-index: 4;
- }
- 
- @-webkit-keyframes scanlines {
-   0% {
-     background-position: 0 40%;
-     bottom: 0%;
-   }
- }
- 
- @keyframes scanlines {
-   0% {
-     background-position: 0 40%;
-     bottom: 0%;
-   }
- }
+.bezel{
+    position: fixed;
+    width: 110%;
+    height: 110%;
+    /* border-image-source: url(/bezel_with_titles.png); */
+    border-image-slice: 0 fill;
+    border-image-outset: 0;
+    z-index: 5;
+}
+
+.monitor{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 110%;
+    height: 110%;
+}
+
+.monitor__screen{
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 1024px;
+    height: 780px;
+    background: radial-gradient(#3b444b, 	black);
+    z-index: 4;
+}
+
+.monitor__crt:before{
+    content: "";
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    background: linear-gradient(
+        to bottom,
+        rgba(18, 16, 16, 0) 50%,
+        rgba(0, 0, 0, 0.25) 50%
+    );
+    background-size: 100% 8px;
+    z-index: 5;
+    pointer-events: none;
+    animation: scanlines 5s steps(60) infinite;
+}
+
+.monitor__channel{
+    position: absolute;
+    bottom: 10%;
+    left: 8%;
+    width: fit-content;
+    padding: 2px 3px;
+    background-color: black;
+    z-index: 4;
+}
+
+@-webkit-keyframes scanlines {
+0% {
+    background-position: 0 40%;
+    bottom: 0%;
+}
+}
+
+@keyframes scanlines {
+0% {
+    background-position: 0 40%;
+    bottom: 0%;
+}
+}
