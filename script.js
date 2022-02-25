@@ -1,7 +1,28 @@
 // TD/ Gérer les gamestate
-// TD/ Gérer le chagement de niveaux
-// TD/ Gérer les bonus
-// TD/ Gérer les malus
+    // CHECK/ menu
+    // CHECK/ pause
+    // CHECK/ loose
+    // CHECK/ win
+    // CHECK/ buildmap (gérer le changement de niveaux)
+        // CHECK/ bien récup les lvl
+        // CHECK/ générer le lvl en fonction du lvl selectionné
+        // CHECK/ si loose -> recommencer le même niveau, si win -> on passe au suivant
+    // CHECK/ Afficher le menu de win final + retour au menu possible
+// CHECK/ Désactiver les controles quand dans les menus
+// CHECK/ Augmenter un peu la hitbox du joueur sur les côtés
+// CHECK/ Briques bombe -> regarder les mutations sur les ballons
+// CHECK/ Gérer les bonus
+// CHECK/ Gérer les malus
+// CHECK/ Ajouter une couleur aux items
+// CHECK/ Fix les déplacements
+// TD/ Faire plusieurs malus
+// TD/ Faire plusieurs malus
+// TD/ Factoriser le js
+// TD/ Factoriser et mieux nommer le CSS
+// TD/ Commenter le code
+
+// TD/ BONUS -> menu de selection des niveaux
+// TD/ BONUS -> musique et sons
 
 class Entity {
     constructor(posx, posy, height, width, speed, health) {
@@ -17,15 +38,15 @@ class Entity {
         this.isAlive = true;
     }
 
-    collision = function(posx, posy) {
-        return posx >= this.posx && posx <= this.posx+this.width && posy >= this.posy && posy <= this.posy+this.height;
-    }
-
     damage = function(amount) {
         this.health -= amount;
-        if(this.health == 0)
+        if(this.health == 0) {
+            this.act();
             this.isAlive = false;
+        }        
     }
+
+    act = function() {}
 }
 
 class Player extends Entity {
@@ -38,7 +59,7 @@ class Player extends Entity {
         this.posx = (V.gameContainerWidth / 2) - (this.width / 2);
         this.posy = V.gameContainerHeight - this.height - 25;
 
-        this.speed = 25;
+        this.speed = 5;
 
         this.health = 3;
 
@@ -56,6 +77,19 @@ class Player extends Entity {
     moveRight = function() {
         if(this.posx + this.speed + this.width <= V.gameContainerWidth)
             this.posx += this.speed;
+    }
+
+    // Check if collision with items or ball
+    checkCollision = function(collidable) {
+        const betterGameplayPadding = 3;
+        let speed = 0;
+
+        if (collidable.speedy) speed = collidable.speedy;
+        else speed = collidable.speed;
+
+        return ((collidable.posy + speed > this.posy - this.height - collidable.height/2 - betterGameplayPadding)
+            && (collidable.posx > this.posx - betterGameplayPadding && collidable.posx < this.posx + this.width + betterGameplayPadding)
+            && speed>0)
     }
 }
 
@@ -102,13 +136,6 @@ class Ball extends Entity {
         }
     }
 
-    // Check if ball collide with player
-    checkPlayerCollision = function(player) {
-        if ((this.posy + this.speedy > player.posy - player.height - this.height/2) && (this.posx > player.posx && this.posx < player.posx + player.width)) {
-            this.speedy = -this.speedy;
-        }
-    }
-
     checkBricksCollision = function(bricks) {
         bricks.forEach(brick => {
             // Check if collide
@@ -123,8 +150,7 @@ class Ball extends Entity {
                     } else { 
                         this.speedy = -this.speedy;
                     }
-                    brick.health -= 1;
-                    if (brick.health == 0) brick.isAlive = false;
+                    brick.damage(1);
             }
         })
     }
@@ -160,11 +186,113 @@ class Brick extends Entity {
     }
 }
 
-class Item extends Entity {}
+class BombBrick extends Brick {
+    act = function() {
+        M.items.push(new Bomb(this.posx, this.posy, 20, 20, 3, 1, 'bomb'));
+        this.isAlive = false;
+    }
+}
 
-class Bonus extends Item {}
+class MalusBrick extends Brick {
+    act = function() {
+        M.items.push(new Malus(this.posx, this.posy, 10, 10, 3, 1, 'malus'));
+        this.isAlive = false;
+    }
+}
 
-class Malus extends Item {}
+class BonusBrick extends Brick {
+    act = function() {
+        M.items.push(new Bonus(this.posx, this.posy, 10, 10, 3, 1, 'bonus'));
+        this.isAlive = false;
+    }
+}
+
+class Item extends Entity {
+    constructor(posx, posy, height, width, speed, health, type) {
+        super(posx, posy, height, width, speed, health);
+        this.type = type;
+    }
+
+    move = function() {
+        this.posy += this.speed;
+        if (this.posy + this.speed > V.gameContainerHeight - this.height) {
+            this.isAlive = false;
+        }
+    }
+}
+
+class Bomb extends Item {
+    act = function() {
+        M.player.damage(1);
+    }
+}
+
+class Bonus extends Item {
+    constructor(posx, posy, height, width, speed, health, type) {
+        super(posx, posy, height, width, speed, health, type);
+
+        const randomNumber = Math.random().toFixed(2) * 100;
+        if (randomNumber <= 25) {
+
+            this.act = function() {
+                console.log("bonus 1")
+            }
+
+        } else if (randomNumber > 25 && randomNumber <= 50) {
+
+            this.act = function() {
+                console.log("bonus 2")
+            }
+
+        } else if (randomNumber > 50 && randomNumber <= 75) {
+
+            this.act = function() {
+                console.log("bonus 3")
+            }
+
+        } else if (randomNumber > 75 && randomNumber <= 100) {
+
+            this.act = function() {
+                console.log("bonus 4")
+            }
+
+        }
+    }
+}
+
+class Malus extends Item {
+    constructor(posx, posy, height, width, speed, health, type) {
+        super(posx, posy, height, width, speed, health, type);
+
+        const randomNumber = Math.random().toFixed(2) * 100;
+
+        if (randomNumber <= 25) {
+
+            this.act = function() {
+                console.log("malus 1")
+            }
+
+        } else if (randomNumber > 25 && randomNumber <= 50) {
+
+            this.act = function() {
+                console.log("malus 2")
+            }
+
+        } else if (randomNumber > 50 && randomNumber <= 75) {
+
+            this.act = function() {
+                console.log("malus 3")
+            }
+
+        } else if (randomNumber > 75 && randomNumber <= 100) {
+
+            this.act = function() {
+                console.log("malus 1")
+            }
+            
+        }
+    }
+}
 
 class Levelmap {
     constructor() {
@@ -173,39 +301,17 @@ class Levelmap {
         this.cols = V.gameContainerWidth/this.tileWidth;
         this.rows = 15;
 
-        // TEST LEVEL
-        this.testLevel = {
-            name: "level test",
-            map: [  
-                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-                    [0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0],
-                    [0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0],
-                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-                    [0,0,0,0,3,0,0,0,1,0,0,0,2,0,0,0],
-                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-                    [0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0],
-                    [0,0,0,0,0,0,0,0,0,0,3,0,0,0,0,3],
-                    [0,0,0,0,0,0,0,0,0,0,3,0,0,0,0,0],
-                    [1,1,1,1,1,10,1,0,0,1,1,1,1,1,0,0],
-                    [1,1,1,1,1,1,1,0,0,10,1,1,1,1,0,0],
-                    [1,1,1,1,1,1,1,0,0,10,1,10,1,1,0,0],
-                    [1,1,10,10,10,1,10,0,0,10,1,1,1,1,0,0],
-                ]
-        }
-
         // Get levels maps from json file
+        let levels = null;
         let xhr = new XMLHttpRequest();
         xhr.onreadystatechange = function () {
             if (xhr.status == 200 && xhr.readyState == 4) {
-                // console.log(JSON.parse(xhr.responseText));
-                this.bonj = "onk"
-                this.levels = JSON.parse(xhr.responseText);
+                levels = JSON.parse(xhr.responseText);
             }
         }
-        xhr.open('get', './levels.json')
+        xhr.open('get', './levels.json', false)
         xhr.send();
+        this.levels = levels;
     }
 }
 
@@ -213,9 +319,10 @@ var M = {
     levelmap: null,
     player: null,
     ball: null,
-    level: null,
-    bonus: null,
-    malus: null,
+    level: 1,
+
+    sprites: [],
+    items: [],
 
     levelDictionnary: {
         "empty": 0,
@@ -225,13 +332,9 @@ var M = {
         "unbreackableBrick": 10
     },
 
-    sprites: [],
-
     init: function() {
         // Instantiate the levelmap
         M.levelmap = new Levelmap();
-
-        this.gameStart();
     },
 
     gameStart: function() {
@@ -242,18 +345,24 @@ var M = {
         M.ball = new Ball();
 
         // Build the map
-        M.buildMap(M.levelmap.testLevel);
+        M.buildMap(M.levelmap.levels[M.level]);
     },
-
-    // checkPlayerBallCollision: function() {
-    //     if(M.player.collision(M.ball.posx, M.ball.posy)) {
-    //         M.ball.speedy = -M.ball.speedy;
-    //     }
-    // },
 
     // Create Bricks and push them into sprites array to render
     spritePusher: function (tileName, col, row, health, color) {
-        tileName = new Brick(tileName, M.levelmap.tileHeight, M.levelmap.tileWidth, col, row, health, color);
+        if (tileName != 'unbreackableBrick') {
+            const randomNumber = Math.random().toFixed(2) * 100;
+            if (randomNumber <= 5) {
+                tileName = new BonusBrick(tileName, M.levelmap.tileHeight, M.levelmap.tileWidth, col, row, health, color);
+            } else if (randomNumber > 5 && randomNumber <= 10) {
+                tileName = new MalusBrick(tileName, M.levelmap.tileHeight, M.levelmap.tileWidth, col, row, health, color);
+            } else if (randomNumber > 10 && randomNumber <= 20) {
+                tileName = new BombBrick(tileName, M.levelmap.tileHeight, M.levelmap.tileWidth, col, row, health, color);
+            } else {
+                tileName = new Brick(tileName, M.levelmap.tileHeight, M.levelmap.tileWidth, col, row, health, color);
+            }
+        }
+        
         M.sprites.push(tileName);
     },
 
@@ -290,6 +399,33 @@ var M = {
         }
     },
 
+    checkPlayerBallCollision: function() {
+        if (M.player.checkCollision(M.ball)) {
+            console.log("cc")
+            M.ball.speedy = -M.ball.speedy;
+        }
+    },
+
+    // A VERIFIER
+    checkPlayerItemsCollision: function() {
+        M.items.forEach(item => {
+            if (M.player.checkCollision(item)) {
+                item.damage(1);
+            }
+        });
+    },
+
+    updatePlayerPosition: function(keys) {
+        if (keys.left) {
+            M.player.moveLeft();
+            if (!M.ball.isLaunched) M.ball.posx = M.player.posx + (M.player.width / 2) - (M.ball.width / 2);
+        }
+        if (keys.right) {
+            M.player.moveRight();
+            if (!M.ball.isLaunched) M.ball.posx = M.player.posx + (M.player.width / 2) - (M.ball.width / 2);
+        }
+    },
+
     updateSprites: function() {
         // Filter bricks
         M.sprites = M.sprites.filter( function(sprite){ return sprite.isAlive==true;} );
@@ -302,6 +438,23 @@ var M = {
                 case 3: sprite.type = 'threehit'; break;
             }
         })
+    },
+
+    updateItems: function() {
+        M.items = M.items.filter( function(item){ return item.isAlive==true;} );
+    },
+
+    moveItems: function() {
+        M.items.forEach(item => {
+            item.move();
+        })
+    },
+
+    clearAll: function() {
+        // M.player = null;
+        // M.ball = null;
+        M.items = [];
+        M.sprites = [];
     }
 }
 
@@ -309,77 +462,185 @@ var C = {
     gameloopId: undefined,
     gamestate: 0,
 
+    keys: {
+        left: false,
+        right: false,
+        space: false
+    },
+
     gamestateDictionnary: {
-        0: "load",
-        1: "builmap",
-        2: "game",
-        3: "pause",
-        10: "menu",
-        11: "levelmenu",
-        12: "menumap"
+        "load": 0,
+        "builmap": 1,
+        "game": 2,
+        "pause": 3,
+        "loose": 4,
+        "win": 5,
+        "finalwin": 6,
+        "menu": 10,
+        "levelmenu": 11,
+        "menumap": 12
     },
 
     init: function() {
         V.init();
         M.init();
-        C.globalHandlerControl();
         C.gameloop();
     },
 
     gameloop: function() {
         gameLoopId = window.requestAnimationFrame(C.gameloop);
 
-        // Filter & update elements
-        M.updateSprites();
+        // Handling game states
+        switch(C.gamestate) {
+            case C.gamestateDictionnary['load']:
+                console.log('loading...');
+                C.gamestate = C.gamestateDictionnary['menu'];
+                break;
+            
+            case C.gamestateDictionnary['menu']:
+                break;
+            
+            case C.gamestateDictionnary['pause']:
+                break;
+            
+            case C.gamestateDictionnary['buildmap']:
+                V.hideElement(V.menuContainer);
+                V.hideElement(V.winContainer);
+                V.hideElement(V.looseContainer);
+                M.clearAll();
+                M.gameStart();
+                C.gamestate = C.gamestateDictionnary['game'];
+                break;
+            
+            case C.gamestateDictionnary['levelmenu']:
+                break;
 
-        // Move entities & Check collisions
-        if(M.ball.isLaunched && M.ball.isAlive) {
-            M.ball.checkWallCollision();
-            M.ball.checkPlayerCollision(M.player);
-            M.ball.checkBricksCollision(M.sprites);
-            M.ball.move();
-        } else if (!M.ball.isAlive) {
-            M.player.health -= 1;
-            if (M.player.health == 0) {
-                // TD/ Switch to Game Over screen state
-                window.alert("Game Over!");
-                window.cancelAnimationFrame(gameLoopId);
-            }
-            M.ball.resetBall(M.player);
+            case C.gamestateDictionnary['game']:
+                // Filter & update elements
+                M.updatePlayerPosition(C.keys);
+                M.updateSprites();
+                M.updateItems();
+
+                M.moveItems();
+
+                // Move entities & Check collisions
+                M.checkPlayerItemsCollision();
+                if(M.ball.isLaunched && M.ball.isAlive && M.player.isAlive) {
+                    M.ball.checkWallCollision();
+                    M.ball.checkBricksCollision(M.sprites);
+                    M.checkPlayerBallCollision();
+                    M.ball.move();
+
+                    // TD/ mettre dans une fonction checkWin
+                    if (M.sprites.length == 0) {
+                        // TD/ mettre dans une fonction/ailleurs
+                        V.showElement(V.winContainer);
+                        if(Object.keys(M.levelmap.levels).length != M.level) {
+                            M.level += 1;
+                            C.gamestate = C.gamestateDictionnary['win'];
+                        } else {
+                            C.gamestate = C.gamestateDictionnary['finalwin'];
+                        }
+                        
+                        // TD/ Mettre dans une fonction
+                        M.clearAll();
+                        V.clearGameView();
+                    }
+                } else if (!M.ball.isAlive) {
+                    M.player.damage(1);
+                    M.ball.resetBall(M.player);
+                }
+
+                C.isPlayerAlive();
+
+                // Duplicate model dataset for view
+                modelDataset = { player: M.player, ball: M.ball, map: M.sprites, items: M.items };
+
+                // Clear game container
+                V.clear();
+
+                // Render view
+                V.renderAll(modelDataset);
+                break;
+            
+            case C.gamestateDictionnary['loose']:
+                break;
+            
+            case C.gamestateDictionnary['win']:
+                break;
+            
+            case C.gamestateDictionnary['finalwin']:
+                V.winTextContainer.textContent = "YOU WON!\nPRESS ENTER TO GO BACK TO MENU";
+                break;
         }
-
-        // Duplicate model dataset for view
-        modelDataset = { player: M.player, ball: M.ball, map: M.sprites };
-
-        // Clear game container
-        V.clear();
-
-        // Render view
-        V.renderAll(modelDataset);
     },
 
-    globalHandlerControl: function() {
-        window.addEventListener("keydown", ev => {
-            switch(ev.code) {
-                case 'ArrowLeft':
-                    M.player.moveLeft();
-                    if(!M.ball.isLaunched) M.ball.posx = M.player.posx + (M.player.width / 2) - (M.ball.width / 2);
-                    break;
-                
-                case 'ArrowRight':
-                    M.player.moveRight();
-                    if(!M.ball.isLaunched) M.ball.posx = M.player.posx + (M.player.width / 2) - (M.ball.width / 2);
-                    break;
+    globalHandlerControl: function(ev) {
+        let keyState = (ev.type == "keydown") ? true : false
 
-                case 'Space':
+        switch(ev.code) {
+            case 'ArrowLeft':
+                C.keys.left = keyState;
+                // if (C.gamestate == C.gamestateDictionnary['game']) {
+                //     M.player.moveLeft();
+                //     if (!M.ball.isLaunched) M.ball.posx = M.player.posx + (M.player.width / 2) - (M.ball.width / 2);
+                // }
+                break;
+            
+            case 'ArrowRight':
+                C.keys.right = keyState;
+                // if (C.gamestate == C.gamestateDictionnary['game']) {
+                //     M.player.moveRight();
+                //     if (!M.ball.isLaunched) M.ball.posx = M.player.posx + (M.player.width / 2) - (M.ball.width / 2);
+                // }
+                break;
+
+            case 'Space':
+                if (C.gamestate == C.gamestateDictionnary['game']) {
                     M.ball.launch();
-                    break;
-                
-                case 'Enter':
-                    // Start the level
-            }
-        });
+                }
+                break;
+            
+            case 'Enter':
+                if (C.gamestate == C.gamestateDictionnary['menu']) {
+                    C.gamestate = C.gamestateDictionnary['buildmap'];
+                } else if (C.gamestate == C.gamestateDictionnary['loose']) {
+                    C.gamestate = C.gamestateDictionnary['buildmap'];
+                    // V.hideElement(V.looseContainer);
+                } else if (C.gamestate == C.gamestateDictionnary['win']) {
+                    // TD/ Change level
+                    C.gamestate = C.gamestateDictionnary['buildmap'];
+                    // V.hideElement(V.winContainer);
+                } else if (C.gamestate == C.gamestateDictionnary['finalwin']) {
+                    M.level = 1;
+                    V.hideElement(V.winContainer);
+                    V.showElement(V.menuContainer);
+                    C.gamestate = C.gamestateDictionnary['menu'];
+                }
+                break;
+            
+            case 'Escape':
+                if (C.gamestate == C.gamestateDictionnary['game']) {
+                    V.showElement(V.pauseContainer);
+                    C.gamestate = C.gamestateDictionnary['pause'];
+                } else if (C.gamestate == C.gamestateDictionnary['pause']) {
+                    V.hideElement(V.pauseContainer);
+                    C.gamestate = C.gamestateDictionnary['game'];
+                }
+                break;
+        }
     },
+
+    isPlayerAlive: function() {
+        if (!M.player.isAlive) {
+            // TD/ Mettre dans une fonction
+            M.clearAll();
+            V.clearGameView();
+
+            V.showElement(V.looseContainer);
+            C.gamestate = C.gamestateDictionnary['loose'];
+        }
+    }
 }
 
 var V = {
@@ -387,16 +648,34 @@ var V = {
     gameContainerWidth: undefined,
     gameContainerHeight: undefined,
     healthAmountContainer: undefined,
+    menuContainer: undefined,
+    pauseContainer: undefined,
+    looseContainer: undefined,
+    winContainer: undefined,
+    winTextContainer: undefined,
 
     init: function() {
         V.gameContainer = document.querySelector(".game-container");
         V.healthAmountContainer = document.querySelector(".healthamount");
         V.gameContainerWidth = V.gameContainer.offsetParent.clientWidth;
         V.gameContainerHeight = V.gameContainer.offsetParent.clientHeight;
+        V.menuContainer = document.querySelector(".menu");
+        V.pauseContainer = document.querySelector(".pause");
+        V.looseContainer = document.querySelector(".loose");
+        V.winContainer = document.querySelector(".win");
+        V.winTextContainer = document.querySelector(".win__text");
+
+        V.bindEvents();
     },
 
     clear: function() {
         V.gameContainer.innerHTML = "";
+    },
+
+    bindEvents: function() {
+        // V.menuContainer.addEventListener("");
+        window.addEventListener("keydown", C.globalHandlerControl);
+        window.addEventListener("keyup", C.globalHandlerControl);
     },
 
     renderAll: function(modelDataset) {
@@ -411,6 +690,8 @@ var V = {
 
         // Render map
         V.renderMap(modelDataset.map);
+
+        V.renderItems(modelDataset.items);
     },
 
     renderPlayer: function(player) {
@@ -458,6 +739,34 @@ var V = {
             V.gameContainer.append(brickDiv);
         })
     },
+
+    renderItems: function(items) {
+        items.forEach(item => {
+            var itemDiv = document.createElement("div");
+
+            itemDiv.style.position = "absolute";
+            itemDiv.style.left = item.posx + "px";
+            itemDiv.style.top = item.posy + "px";
+            itemDiv.style.width = item.width + "px";
+            itemDiv.style.height = item.height + "px";
+            itemDiv.style.borderRadius = item.radius + "px";
+            itemDiv.classList.add(item.type);
+
+            V.gameContainer.append(itemDiv);
+        })
+    },
+
+    showElement: function(element) {
+        element.style.display = 'flex';
+    },
+
+    hideElement: function (element) {
+        element.style.display = 'none';
+    },
+
+    clearGameView: function() {
+        V.gameContainer.innerHTML = "";
+    }
 }
 
 C.init();
