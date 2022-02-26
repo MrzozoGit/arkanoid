@@ -15,10 +15,13 @@
 // CHECK/ Gérer les malus
 // CHECK/ Ajouter une couleur aux items
 // CHECK/ Fix les déplacements
-// TD/ Faire plusieurs malus
-// TD/ Faire plusieurs malus
+// CHECK/ Faire plusieurs malus
+// CHECK/ Reset les controls inversés lors du game over
+// CHECK/ Factoriser et mieux nommer le CSS
+// TD/ Faire plusieurs bonus
+// TD/ Reset les bonus/malus au game over
+// TD/ Clear les timeout des bonus/malus au game over
 // TD/ Factoriser le js
-// TD/ Factoriser et mieux nommer le CSS
 // TD/ Commenter le code
 
 // TD/ BONUS -> menu de selection des niveaux
@@ -59,7 +62,7 @@ class Player extends Entity {
         this.posx = (V.gameContainerWidth / 2) - (this.width / 2);
         this.posy = V.gameContainerHeight - this.height - 25;
 
-        this.speed = 5;
+        this.speed = 6;
 
         this.health = 3;
 
@@ -231,11 +234,18 @@ class Bonus extends Item {
     constructor(posx, posy, height, width, speed, health, type) {
         super(posx, posy, height, width, speed, health, type);
 
+        // TD/ Faire de nouvelles classes pour chaque bonus/malus avec une fonction act propre, et mettre la selection aléatoire dans BonusBrick/MalusBrick
         const randomNumber = Math.random().toFixed(2) * 100;
         if (randomNumber <= 25) {
 
             this.act = function() {
-                console.log("bonus 1")
+                // Increase player width
+                M.player.width = M.player.width*2;
+
+                // Wait 20s, then decrease player width
+                setTimeout(() => {
+                    M.player.width = M.player.width/2;
+                }, 20000);
             }
 
         } else if (randomNumber > 25 && randomNumber <= 50) {
@@ -253,7 +263,13 @@ class Bonus extends Item {
         } else if (randomNumber > 75 && randomNumber <= 100) {
 
             this.act = function() {
-                console.log("bonus 4")
+                // Increase player speed
+                M.player.speed = M.player.speed*2;
+
+                // Wait 30s, then decrease player speed
+                setTimeout(() => {
+                    M.player.speed = M.player.speed/2;
+                }, 30000);
             }
 
         }
@@ -269,25 +285,61 @@ class Malus extends Item {
         if (randomNumber <= 25) {
 
             this.act = function() {
-                console.log("malus 1")
+                console.log("decrease width");
+
+                M.player.width = M.player.width/2;
+
+                // Wait 20s, then increase player width
+                setTimeout(() => {
+                    M.player.width = M.player.width*2;
+                }, 20000);
             }
 
         } else if (randomNumber > 25 && randomNumber <= 50) {
 
             this.act = function() {
-                console.log("malus 2")
+                console.log("invert controls")
+
+                // Invert controls
+                const tempControl = C.controls[0];
+                C.controls[0] = C.controls[1];
+                C.controls[1] = tempControl;
+
+                // Wait 15s, then revert controls
+                setTimeout(() => {
+                    C.controls[1] = C.controls[0];
+                    C.controls[0] = tempControl;
+                }, 15000);
             }
 
         } else if (randomNumber > 50 && randomNumber <= 75) {
 
             this.act = function() {
-                console.log("malus 3")
+                console.log("decrease player speed");
+
+                // Decrease player speed
+                M.player.speed = M.player.speed*0.6;
+
+                // Wait 30s, then increase player speed
+                setTimeout(() => {
+                    M.player.speed = M.player.speed/0.6;
+                }, 30000);
             }
 
         } else if (randomNumber > 75 && randomNumber <= 100) {
 
             this.act = function() {
-                console.log("malus 1")
+                console.log("increase ball speed");
+
+                // Increase ball speed
+                M.ball.speedx = M.ball.speedx * 1.5;
+                M.ball.speedy = M.ball.speedy * 1.5;
+
+                // Wait 20s, then decrease ball speed
+                setTimeout(() => {
+                    M.ball.speedx = M.ball.speedx / 1.5;
+                M.ball.speedy = M.ball.speedy / 1.5;
+                }, 30000);
             }
             
         }
@@ -461,6 +513,7 @@ var M = {
 var C = {
     gameloopId: undefined,
     gamestate: 0,
+    controls: ["ArrowLeft", "ArrowRight"],
 
     keys: {
         left: false,
@@ -504,6 +557,7 @@ var C = {
                 break;
             
             case C.gamestateDictionnary['buildmap']:
+                C.controls = ["ArrowLeft", "ArrowRight"];
                 V.hideElement(V.menuContainer);
                 V.hideElement(V.winContainer);
                 V.hideElement(V.looseContainer);
@@ -579,7 +633,7 @@ var C = {
         let keyState = (ev.type == "keydown") ? true : false
 
         switch(ev.code) {
-            case 'ArrowLeft':
+            case C.controls[0]:
                 C.keys.left = keyState;
                 // if (C.gamestate == C.gamestateDictionnary['game']) {
                 //     M.player.moveLeft();
@@ -587,7 +641,7 @@ var C = {
                 // }
                 break;
             
-            case 'ArrowRight':
+            case C.controls[1]:
                 C.keys.right = keyState;
                 // if (C.gamestate == C.gamestateDictionnary['game']) {
                 //     M.player.moveRight();
